@@ -1,0 +1,17 @@
+{
+    "contents" : "---\ntitle: Virginia\noutput:\n  html_document:\n    keep_md: true\n---\n\n## In this example we use the R data set 'VADeaths' to examine death rates per 1000 in Virigina in 1940. The data set has variables age group, rural male, rural female, urban male, urban female.\n\n## The first plot is a column plot of deaths for each type of individual (the columns) by age group (shading on the columns). The height of the shading represents the death rate. The number in each column is the mean death rate for that column. \n\n## The second chart is a clustered bar chart where each cluster represents a type of individual (rural male, rural female, etc) and the bars represent the age group. The death rate is given by the height of the bar.\n\n```{r}\nmp <- barplot(VADeaths) # default\ntot <- colMeans(VADeaths)\ntext(mp, tot + 3, format(tot), xpd = TRUE, col = \"blue\")\nbarplot(VADeaths, beside = TRUE,\n        col = c(\"lightblue\", \"mistyrose\", \"lightcyan\",\n                \"lavender\", \"cornsilk\"),\n        legend = rownames(VADeaths), ylim = c(0, 100))\ntitle(main = \"Death Rates in Virginia\", font.main = 4)\n```\n\n## If I were doing a project to turn in, I would add some data interpretation here.",
+    "created" : 1452978006771.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3794941557",
+    "id" : "26A75538",
+    "lastKnownWriteTime" : 1452979539,
+    "path" : "U:/test-repo/DeathRates/DeathRates.Rmd",
+    "project_path" : "DeathRates.Rmd",
+    "properties" : {
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "type" : "r_markdown"
+}

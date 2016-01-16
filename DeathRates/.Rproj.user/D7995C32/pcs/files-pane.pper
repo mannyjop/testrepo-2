@@ -1,0 +1,9 @@
+{
+    "path" : "U:/test-repo/DeathRates",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}
