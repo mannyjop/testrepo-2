@@ -1,0 +1,44 @@
+---
+title: "Visualizing the Central Limit Theorem"
+author: "Michael Smith"
+date: "May 29, 2016"
+output:
+  html_document:
+    keep_md: true
+---
+
+First, we need to establish an initial sample and discover it's mean:
+
+```{r}
+x <- rnorm(50, 22, 5)
+xbar <- mean(x)
+summary(x)
+```
+
+Next we create a bootstrap sample based of the initial sample as though it was a population:
+
+```{r}
+nsims <- 1000
+bootnorm <- numeric(nsims)
+for (i in 1:nsims) {
+	temp <- sample(x, 50, replace=TRUE)
+	bootnorm[i] <- mean(temp)
+}
+summary(bootnorm)
+```
+
+Now that we have our sample, we can see on a histogram that the bootstrap sample is normally distributed around the initial sample population mean in red:
+
+```{r}
+hist(bootnorm)
+abline(v=xbar, col="red")
+```
+
+As we increase the number of bootstrap iterations taken, the histogram will become more and more normally distributed. Further, we can compare the standard deviation of the origianl population and the bootstrap population to see a more direct comparison in the distribution of the values:
+
+```{r}
+sd(x)
+sd(bootnorm)
+```
+
+The closer the SD is to zero, the closer the data is to being normally distributed.
