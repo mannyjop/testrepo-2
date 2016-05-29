@@ -34,11 +34,53 @@ hist(bootnorm)
 abline(v=xbar, col="red")
 ```
 
-As we increase the number of bootstrap iterations taken, the histogram will become more and more normally distributed. Further, we can compare the standard deviation of the origianl population and the bootstrap population to see a more direct comparison in the distribution of the values:
+As we increase the number of bootstrap iterations taken, the histogram will become more and more normally distributed. We can also compare it to increased sample sizes of the original population.
 
 ```{r}
-sd(x)
-sd(bootnorm)
+x <- rnorm(100, 22, 5)
+xbar <- mean(x)
+summary(x)
+nsims <- 5000
+bootnorm <- numeric(nsims)
+for (i in 1:nsims) {
+	temp <- sample(x, 100, replace=TRUE)
+	bootnorm[i] <- mean(temp)
+}
+summary(bootnorm)
+hist(bootnorm)
+abline(v=xbar, col="red")
 ```
 
-The closer the SD is to zero, the closer the data is to being normally distributed.
+This effect can also be seen on samples with exponential distributions:
+
+```{r}
+x <- rexp(50)
+xbar <- mean(x)
+summary(x)
+nsims <- 1000
+bootnorm <- numeric(nsims)
+for (i in 1:nsims) {
+	temp <- sample(x, 50, replace=TRUE)
+	bootnorm[i] <- mean(temp)
+}
+summary(bootnorm)
+hist(bootnorm)
+abline(v=xbar, col="red")
+```
+
+And of course, larger sample sizes within exponential distributions:
+
+```{r}
+x <- rexp(100)
+xbar <- mean(x)
+summary(x)
+nsims <- 5000
+bootnorm <- numeric(nsims)
+for (i in 1:nsims) {
+	temp <- sample(x, 100, replace=TRUE)
+	bootnorm[i] <- mean(temp)
+}
+summary(bootnorm)
+hist(bootnorm)
+abline(v=xbar, col="red")
+```
