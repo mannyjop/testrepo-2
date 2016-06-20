@@ -1,0 +1,13 @@
+#http://stackoverflow.com/questions/7508229/how-to-create-a-column-with-a-quartile-rank
+
+setwd("z:/Google Drive/SMU/Doing Data Science/Homework/Unit 6 Case Study/")
+
+edstatsraw <- read.csv("getdata%2Fdata%2FEDSTATS_Country.csv")
+gdpraw <- read.csv("getdata%2Fdata%2FGDP.csv", stringsAsFactors=FALSE)
+
+gdp <- gdpraw[5:235,c(1,2,4,5)]
+names(gdp) <- c("CountryCode","Ranking","Economy","GDP.Dollars")
+gdp$CountryCode <- as.character(gdp$CountryCode)
+gdp$Ranking <- as.integer(gdp$Ranking)
+gdp$Economy <- as.character(gdp$Economy)
+gdp$GDP.Dollars <- as.integer(gsub(",","",gdp$GDP.Dollars))

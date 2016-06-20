@@ -1,0 +1,127 @@
+---
+title: "6306-402 Unit 6 Case Study"
+author: "Michael Smith"
+date: "June 19, 2016"
+output:
+  html_document:
+    keep_md: true
+---
+
+## Introduction
+
+The purpose of this case study is to identify global GDP rankings and compare them to defined income groups. By the end of this study, it should be possible to better visualize a country's GDP in relation to other countries and its own income bracket. The data that is being used in this study has been/will be downloaded from an online repository at https://d396qusza40orc.cloudfront.net/.
+
+```{r setup, include=FALSE}
+# Set your working directory here.
+setwd("z:/Google Drive/SMU/Doing Data Science/Homework/Unit 6 Case Study/")
+
+# All required libraries are specified here.
+require(ggplot2)
+require(scales)
+
+# Acquire the necessary files and store them locally before importing them into raw data frames.
+download.file("https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FGDP.csv", "GDP.csv")
+gdpraw <- read.csv("GDP.csv", stringsAsFactors = FALSE)
+download.file("https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FEDSTATS_Country.csv", "country.csv")
+countriesraw <- read.csv("country.csv", stringsAsFactors = FALSE)
+
+# Clean up GDP data by first taking only the lines that actually contain data. The lines were identified using increasing values of head() and tail().
+gdp <- gdpraw[5:235,c(1,2,4,5)]
+# After examining the raw data, it was decided that only 4 columns contained data, we name them here.
+names(gdp) <- c("CountryCode","Ranking","Economy","GDP.Dollars")
+# Further clean up of the data, establishing variable type.
+gdp$CountryCode <- as.character(gdp$CountryCode)
+gdp$Ranking <- as.integer(gdp$Ranking)
+gdp$Economy <- as.character(gdp$Economy)
+gdp$GDP.Dollars <- as.integer(gsub(",","",gdp$GDP.Dollars))
+# A quick clean up to the row names to make counting easier.
+rownames(gdp) <- seq(length=nrow(gdp))
+
+# Because We're only interested in the country code, ranking and gdp, we pull only completed cases here with those columns.
+gdp.ranked <- gdp[complete.cases(gdp),c("CountryCode", "Ranking", "GDP.Dollars")]
+
+# A few cases were ignored, we store them in here for further analysis if necessary.
+gdp.ranked.ignored <- gdp[!complete.cases(gdp),]
+gdp.ranked.ignored <- gdp[gdp.ranked.ignored$CountryCode!="",]
+# A count if necessary.
+# nrow(gdp.ranked.rowsIgnored)
+
+# We pull country data here, we only need the long name, country code for merging, and the income group.
+countries <- countriesraw[,c("CountryCode","Long.Name","Income.Group")]
+
+```
+
+## Questions
+
+1. Match the data based on the country shortcode. How many of the IDs match?
+
+```{r echo=FALSE}
+# For convenience, we'll do a simple merge with the all attribute set to TRUE. This way we don't run the risk of losing data in the merge.
+# Merging the data by country code
+rankedCountries <- merge(gdp.ranked, countries, by = "CountryCode", all = TRUE)
+rankedCountries <- rankedCountries[order(rankedCountries$Ranking),]
+# Quick recount of the rownames for easy reading
+rownames(rankedCountries) <- seq(length=nrow(rankedCountries))
+# Simple count of all complete cases to check how many merged successfully
+```
+
+After the merge, we see that only `r sum(complete.cases(rankedCountries))` countries were successfully matched. This is because the countries data file did not contain information on South Sudan, only the Republic of Sudan.
+
+2. Sort the data frame in ascending order by GDP rank (so United States is last). What is the 13th country in the resulting data frame?
+
+```{r echo=FALSE}
+# Here we pull out only the cases that have ranks. We lose a few cases, but we're primarily concerned with rank in relation to income group, so incomplete cases aren't needed
+rankedCountries.onlyRanked <- rankedCountries[complete.cases(rankedCountries),]
+# Store ingored cases just in case for analysis later
+rankedCountries.onlyRanked.ignored <- rankedCountries[!complete.cases(rankedCountries),]
+# Reorder into reverse and stored
+rankedCountries.onlyRanked.reverse <- rankedCountries.onlyRanked[order(-rankedCountries.onlyRanked$Ranking),]
+# Recount for funsies
+rownames(rankedCountries.onlyRanked.reverse) <- seq(length=nrow(rankedCountries.onlyRanked.reverse))
+# And grab the name of the 13th country
+```
+Once we reverse order the countries by rank, we find that the thirteenth country is `r rankedCountries.onlyRanked.reverse[13,"Long.Name"]`.
+
+3. What are the average GDP rankings for the "High income: OECD" and "High income: nonOECD" groups?
+
+```{r echo=FALSE}
+# OECD first up - separate and store
+rankedCountries.onlyRanked.highIncome.OECD <- rankedCountries.onlyRanked[grep("High income: OECD",rankedCountries.onlyRanked$Income.Group),]
+rankedCountries.onlyRanked.highIncome.OECD.meanRank <- mean(rankedCountries.onlyRanked.highIncome.OECD$Ranking)
+# And do the same thing for nonOECD
+rankedCountries.onlyRanked.highIncome.nonOECD <- rankedCountries.onlyRanked[grep("High income: nonOECD",rankedCountries.onlyRanked$Income.Group),]
+rankedCountries.onlyRanked.highIncome.nonOECD.meanRank <- mean(rankedCountries.onlyRanked.highIncome.nonOECD$Ranking)
+```
+
+Once we separate the ranked countries into High Income OECD and nonOECD we found the average rankings to be `r rankedCountries.onlyRanked.highIncome.OECD.meanRank` for High Income: OECD and `r rankedCountries.onlyRanked.highIncome.nonOECD.meanRank` for High Income: nonOECD.
+
+4. Plot the GDP for all of the countries. Use ggplot2 to color your plot by Income Group.
+
+To most effectively present this data, a jitter plot of GDP by Income Group with an alpha transparency for overlapping values was chosen. This lets us easily identify strange outliers with extremely high GDPs as well as observe the clustering of GDP within each income group.
+
+```{r echo=FALSE}
+myplot <- qplot(Income.Group, GDP.Dollars, data=rankedCountries.onlyRanked, geom=c("jitter"), color=Income.Group, alpha=I(0.3), main="GDP by Income Group", xlab="Income Groups", ylab="GDP in Millions of Dollars")
+# We removed the x axis text as it was redundant and unnecessary for the presentation of the data
+myplot + theme(axis.text.x=element_blank(),axis.ticks.x=element_blank()) + scale_y_continuous(labels = comma)
+```
+
+Within High Income: OECD there is an extreme outlier (The United States) with quite a bit of spread among the other nations. Surprisingly, Lower Middle Income also has quite a bit of spread in their GDP range as well. However, it's easy to see that the vast majority of all nations have a GDP less than 2.5 trillion.
+
+5. Cut the GDP ranking into 5 separate quantile groups. Make a table versus Income.Group. How many countries are Lower middle income but among the 38 nations with the highest GDP?
+
+``` {r echo=FALSE}
+# Instead of modifying the existing dataframe, we duplicate it before adding the quantile column
+rankedCountries.onlyRanked.quantiles <- rankedCountries.onlyRanked
+# Because we know that we only have 190 ranked countries, we can divide the ranking by 1/5 of the total number and round up to the nearest whole number to establish the quantile
+rankedCountries.onlyRanked.quantiles$Quantile <- ceiling(rankedCountries.onlyRanked.quantiles$Ranking / 38)
+# Create an easy to read table for additional analysis
+IGvsQ <- table(rankedCountries.onlyRanked.quantiles$Income.Group, rankedCountries.onlyRanked.quantiles$Quantile)
+IGvsQ
+# Double checking just in case by summing a list of a logical expression looking for where Quantile == 1 and Income Group == "Lower Middle Income"
+```
+
+Once we grouped countries by Quantile vs Income Group, we found that there are `r sum(rankedCountries.onlyRanked.quantiles$Quantile == 1 & rankedCountries.onlyRanked.quantiles$Income.Group == "Lower middle income")` countries that are in the top 38 highest GDPs but are within the Lower Middle Income group.
+
+## Conclusion
+
+The rankings of GDP seem to be dominated by an elite few. Further, countries engaged in a cooperative effort for economic development seem to have a consistent higher ranking than non-cooperative economies. That said, the vast majority of national GDPs appear to be clustered together below 2.5 Trillion dollars per year, meaning that once you get blow a certain point, the variance between Income Groups and within Income Groups doesn't appear to be that high. But that will require additional analysis and testing to prove conclusive.
