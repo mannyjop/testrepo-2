@@ -1,0 +1,78 @@
+---
+title: "Leage of Women Voters Problem"
+author: "Michael Smith 6306-402"
+date: "July 13, 2016"
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+#Set your working directory here.
+setwd("Z:\\Google Drive\\SMU\\Doing Data Science\\Homework\\Week 10")
+
+#Import data into a raw variable and port over only complete cases (those cases that received one of the three mailouts)
+lwv_raw <- read.csv("LWV_Data.csv")
+lwv <- lwv_raw[complete.cases(lwv_raw),]
+```
+##Introduction
+
+Having worked in Marketing and Communications for a small private university with highly diverse campus, I could already guess, based upon what I know about marketing to prospective students in Texas, what the problem was just from the variables and demographics given. I suspect, the reason for the lack of efficacy in the flyers and mailouts largely has to do with the hispanic population in the sample. Specifically, I believe that where we'll find a larger number of older hispanic voters, we'll find a decrease in voter turnout.
+
+I came to this suspicion by first doing a quick count based on voter demographics. First, the number of identified hispanics, then the number of identified non-young hispanics. Before that, I added a couple of columns to the frame for easy counting; first for hispanic, then for old hispanic.
+
+```{r}
+#Adding two new columns that identifies each observation as hispanic or old hispanic based on identification in Young.Hispanic.Status
+lwv$hispanic <- as.character(lwv$Young.Hispanic.Status)
+lwv$hispanic[lwv$hispanic == "non_y_h"] <- "1"
+lwv$hispanic[lwv$hispanic == "y_h"] <- "1"
+lwv$hispanic[lwv$hispanic == "non_y_non_h"] <- "0"
+lwv$hispanic[lwv$hispanic == "y_non_h"] <- "0"
+lwv$hispanic <- as.integer(lwv$hispanic)
+
+lwv$hispanic.old <- as.character(lwv$Young.Hispanic.Status)
+lwv$hispanic.old[lwv$hispanic.old == "non_y_h"] <- "1"
+lwv$hispanic.old[lwv$hispanic.old == "y_h"] <- "0"
+lwv$hispanic.old[lwv$hispanic.old == "non_y_non_h"] <- "0"
+lwv$hispanic.old[lwv$hispanic.old == "y_non_h"] <- "0"
+lwv$hispanic.old <- as.integer(lwv$hispanic.old)
+```
+
+And to make it easier on me, I divided the frame out into three separate frames for each group, flyer, postcard and control.
+
+```{r}
+#Grabbing the separate groups for easier writing when comparing groups
+lwv.flyer <- lwv[lwv$flyer == 1,]
+lwv.post <- lwv[lwv$post == 1,]
+lwv.control <- lwv[lwv$control == 1,]
+```
+
+## Testing
+
+So, for our quick counts, we have `r sum(lwv$hispanic)` divided evenly into each group:
+
+* Flyers: `r sum(lwv.flyer$hispanic)`
+* Postcards: `r sum(lwv.post$hispanic)`
+* Control: `r sum(lwv.control$hispanic)`
+
+But, we have `r sum(lwv$hispanic.old)` divided into the three groups as:
+
+* Flyers: `r sum(lwv.flyer$hispanic.old)`
+* Postcards: `r sum(lwv.post$hispanic.old)`
+* Control: `r sum(lwv.control$hispanic.old)`
+
+Probably due to random sampling, the old hispanic population is not as evenly spread out. This, I think is our culprit. To test, I use Pearson's product-moment correlation based on the voter's status as a non-young hispanic and whether or not they voted in 2014.
+
+```{r}
+flyer <- cor.test(lwv.flyer$hispanic.old,lwv.flyer$VOTED2014)
+post <- cor.test(lwv.post$hispanic.old,lwv.post$VOTED2014)
+control <- cor.test(lwv.control$hispanic.old,lwv.control$VOTED2014)
+```
+
+## Conclusion
+
+For the flyers, it's unlikely (p-value = `r flyer$p.value`) that the voter's status as a old hispanic is not related to whether or not they voted. I suspect a negative correlation, in that with an increase of the number of old hispanic voters (correlation coefficient = `r flyer$estimate`), there will be a decrease in voter turnout. The story is the same for postcards in that it's unlikely the two variables are unrelated (p-value = `r post$p.value`) and there's likely a negative correlation `r post$estimate`.
+
+The control on the other hand, the two do appear to be unrelated with sufficient evidence pointing to a null correlation (p-value = `r control$p.value`; correlation coefficient = `r control$estimate`).
+
+As for why this is the case, it's simple. Older hispanices are less likely to be able to read and understand English. Or, atleast, I suspect they are. That would require additional testing.
