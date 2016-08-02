@@ -1,0 +1,174 @@
+---
+title: "MSmith_402_Week_10_Case_Study"
+author: "Michael Smith"
+date: "July 17, 2016"
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r include=FALSE}
+setwd("Z:/Google Drive/SMU/Doing Data Science/Homework/Unit 10 Case Study/")
+
+require(fpp)
+require(forecast)
+
+ImportedAsIsData <- read.csv(file="data/ImportedAsIsDataChulwalar.csv", header = F, sep=";", fill = T) 
+ImportedPlanData <- read.csv(file="data/ImportedPlanDataChulwalar.csv", header = F, sep=";", fill = T) 
+ImportedIndicators <- read.csv(file="data/ImportedIndicatorsChulwalar.csv", header = F, sep=";", fill = T)
+
+# The following variables and some code was taken from:
+#                planning und forecasting in a volatile setting:                #
+#                                                                               # 
+#                        the Chulwalar case  v0.8alpha                          #
+#                                                                               #
+#        Amy Wheeler, Nina Weitkamp, Patrick Berlekamp, Johannes Brauer,        #
+#                     Andreas Faatz, Hans-Ulrich Holst                          #
+
+# I apologize if this was what we were not supposed to do for the assignment.
+# I felt that rather than reinvent the wheel, I'd make use of what was available and then do my analysis.
+
+# The data provided comprises of the following partial data sets:
+#
+# Monthly As Is exports 
+# Monthly As Is exports of Efak
+# Monthly As Is exports of Wuge
+# Monthly As Is exports of Etel (Total)
+# Monthly As Is exports of blue Etel
+# Monthly As Is exports of red Etel
+# Yearly As Is exports
+#
+# Monthly Plan exports 
+# Monthly Plan exports of Efak
+# Monthly Plan exports of Wuge
+# Monthly Plan exports of Etel (Total)
+# Monthly Plan exports of blue Etel
+# Monthly Plan exports of red Etel
+# Yearly Plan exports
+
+# In order to be able to work with the partial data sets later, these need to
+# be split into individual vectors and converted into times series.
+
+TotalAsIsVector <- c(ImportedAsIsData [2:13,2],ImportedAsIsData [2:13,3],ImportedAsIsData [2:13,4],ImportedAsIsData [2:13,5],ImportedAsIsData [2:13,6],ImportedAsIsData [2:13,7])
+EfakAsIsVector <- c(ImportedAsIsData [16:27,2],ImportedAsIsData [16:27,3],ImportedAsIsData [16:27,4],ImportedAsIsData [16:27,5],ImportedAsIsData [16:27,6],ImportedAsIsData [16:27,7])
+WugeAsIsVector <- c(ImportedAsIsData [30:41,2],ImportedAsIsData [30:41,3],ImportedAsIsData [30:41,4],ImportedAsIsData [30:41,5],ImportedAsIsData [30:41,6],ImportedAsIsData [30:41,7])
+TotalEtelAsIsVector <- c(ImportedAsIsData [44:55,2],ImportedAsIsData [44:55,3],ImportedAsIsData [44:55,4],ImportedAsIsData [44:55,5],ImportedAsIsData [44:55,6],ImportedAsIsData [44:55,7])
+BlueEtelAsIsVector <- c(ImportedAsIsData [58:69,2],ImportedAsIsData [58:69,3],ImportedAsIsData [58:69,4],ImportedAsIsData [58:69,5],ImportedAsIsData [58:69,6],ImportedAsIsData [58:69,7])
+RedEtelAsIsVector <- c(ImportedAsIsData [72:83,2],ImportedAsIsData [72:83,3],ImportedAsIsData [72:83,4],ImportedAsIsData [72:83,5],ImportedAsIsData [72:83,6],ImportedAsIsData [72:83,7])
+YearAsIsVector <- c(ImportedAsIsData [86,2],ImportedAsIsData [86,3],ImportedAsIsData [86,4],ImportedAsIsData [86,5],ImportedAsIsData [86,6],ImportedAsIsData [86,7])
+TotalAsIsVector_2014 <- c(ImportedAsIsData[2:13,8])
+
+PlanVector <- c(ImportedPlanData[2:13,2],ImportedPlanData[2:13,3],ImportedPlanData[2:13,4],ImportedPlanData[2:13,5],ImportedPlanData[2:13,6],ImportedPlanData[2:13,7])
+EfakPlanVector <- c(ImportedPlanData[16:27,2],ImportedPlanData[16:27,3],ImportedPlanData[16:27,4],ImportedPlanData[16:27,5],ImportedPlanData[16:27,6],ImportedPlanData[16:27,7])
+WugePlanVector <- c(ImportedPlanData[30:41,2],ImportedPlanData[30:41,3],ImportedPlanData[30:41,4],ImportedPlanData[30:41,5],ImportedPlanData[30:41,6],ImportedPlanData[30:41,7])
+TotalEtelPlanVector <- c(ImportedPlanData[44:55,2],ImportedPlanData[44:55,3],ImportedPlanData[44:55,4],ImportedPlanData[44:55,5],ImportedPlanData[44:55,6],ImportedPlanData[44:55,7])
+BlueEtelPlanVector <- c(ImportedPlanData[58:69,2],ImportedPlanData[58:69,3],ImportedPlanData[58:69,4],ImportedPlanData[58:69,5],ImportedPlanData[58:69,6],ImportedPlanData[58:69,7])
+RedEtelPlanVector <- c(ImportedPlanData[72:83,2],ImportedPlanData[72:83,3],ImportedPlanData[72:83,4],ImportedPlanData[72:83,5],ImportedPlanData[72:83,6],ImportedPlanData[72:83,7])
+YearPlanVector <- c(ImportedPlanData[86,2],ImportedPlanData[86,3],ImportedPlanData[86,4],ImportedPlanData[86,5],ImportedPlanData[86,6],ImportedPlanData[86,7])
+PlanVector_2014 <- c(ImportedPlanData[2:13,8])
+
+# The data is saved as a vector and needs to be converted into a time series
+
+TotalAsIs<- ts(TotalAsIsVector , start=c(2008,1), end=c(2013,12), frequency=12)
+EfakAsIs <- ts(EfakAsIsVector , start=c(2008,1), end=c(2013,12), frequency=12)
+WugeAsIs <- ts(WugeAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+TotalEtelAsIs<- ts(TotalEtelAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+BlueEtelAsIs <- ts(BlueEtelAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+RedEtelAsIs <- ts(RedEtelAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+YearAsIs <- ts(YearAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+TotalAsIs_2014 <- ts(TotalAsIsVector_2014, start=c(2014,1), end=c(2014,12), frequency=12)
+
+TotalPlan <- ts(PlanVector , start=c(2008,1), end=c(2013,12), frequency=12)
+EfakPlan <- ts(EfakPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+WugePlan <- ts(WugePlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+TotalEtelPlan <- ts(TotalEtelPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+BlueEtelPlan <- ts(BlueEtelPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+RedEtelPlan <- ts(RedEtelPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+YearPlan <- ts(YearPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+TotalPlan_2014 <- ts(PlanVector_2014, start=c(2014,1), end=c(2014,12), frequency=12)
+```
+
+# Introduction
+
+The purpose of this analysis is to attempt to create a forecasting model for Chulwalar exports. First we will compare the current exports with the planned exports, then examine correlated variables and from there attempt to build a model that reflects those variables using the "As Is" data. Finally, we will then put the forecast side by side with the "As Is" and "Planned" data for total exports.
+
+### Planned vs As Is
+
+Visually, we can see that the planned exports match fairly closely with the current "As Is" data (corr `r cor(TotalAsIs, TotalPlan)`). Below, the "As Is" data for total exports is shown in black. The "Planned" data is overlayed in green.
+
+```{r echo=FALSE}
+plot(TotalAsIs, col="black", main="TotalAsIs")
+lines(TotalPlan , col="green")
+legend("topleft",lty=1, pch=1, col=c("black","green"), c("Total As Is","Planned"))
+```
+
+### As Is Decomposition
+
+When we breakdown the "As Is" data, we can see an obvious seasonal component, with an upward linear trend in the overall data. The seasonal component appears to be yearly, with a peak sometime around September to November and a dip around June and July.
+
+```{r echo=FALSE}
+TotalAsIs_stl <- stl(TotalAsIs, s.window=5)
+plot(TotalAsIs_stl, col="black", main="TotalAsIs_stl")
+monthplot(TotalAsIs_stl$time.series[,"seasonal"], main="", ylab="Seasonal")
+```
+
+### Modeling As Is using Trend and Season
+
+```{r include=FALSE}
+ModelWithTrendAndSeasonalityOnly <- tslm(TotalAsIs ~ trend + season)
+```
+
+Given the seasonality and linear trend of the "As Is" data, we can begin by focusing our model through this lense. We found an adjusted R² of `r summary(ModelWithTrendAndSeasonalityOnly)$adj.r.squared` which seems to indicate a good fit. 
+
+We began by first creating truncated tables that stop at 2012. From this, we'll perform a test forecast for 2013 and then compare that to real to check to see if our model follows the actual data. Below, the forecasted data is in blue, with the actual "As Is" data in green.
+
+```{r include=FALSE}
+TotalAsIs_2012 <- ts(TotalAsIsVector , start=c(2008,1), end=c(2012,12), frequency=12)
+TotalAsIsVector_2013 <- c(ImportedAsIsData [2:13,7])
+TotalAsIs_2013 <- ts(TotalAsIsVector_2013, start=c(2013,1), end=c(2013,12), frequency=12)
+
+PlanVector_2013 <- c(ImportedPlanData[2:13,7])
+TotalPlan_2013 <- ts(PlanVector_2013, start=c(2013,1), end=c(2013,12), frequency=12)
+
+ModelWithTrendAndSeasonalityOnly_2012 <- tslm(TotalAsIs_2012 ~ trend + season)
+```
+
+```{r echo=FALSE}
+ModelWithTrendAndSeasonalityOnly_Forecast <- forecast(ModelWithTrendAndSeasonalityOnly_2012,h=12)
+plot(ModelWithTrendAndSeasonalityOnly_Forecast, col="black", main="ModelWithTrendAndSeasonalityOnly_Forecast")
+lines(TotalAsIs_2013, col="green")
+legend("topleft",lty=1, pch=1, col=c("black","green","blue"), c("Total As Is","Planned","Forecast"))
+```
+
+```{r include=FALSE}
+ModelWithTrendAndSeasonalityOnly_Forecast_df <-as.data.frame(ModelWithTrendAndSeasonalityOnly_Forecast) 
+ModelWithTrendAndSeasonalityOnly_PointForecast <- ts(ModelWithTrendAndSeasonalityOnly_Forecast_df$"Point Forecast", start=c(2013,1), end=c(2013,12), frequency=12)
+ModelWithTrendAndSeasonalityOnly_Forecast_lm <- lm(TotalAsIs_2013 ~ ModelWithTrendAndSeasonalityOnly_PointForecast, data = TotalAsIs_2013)
+```
+We were able to find a strong correlation (corr `r cor(ModelWithTrendAndSeasonalityOnly_PointForecast, TotalAsIs_2013)`) between the forecasted 2013 data and the actual "As Is" data. Further, a linear regression revealed that with 95% confidence we are unable to say the extremes within the actual "As Is" data could not be found within the forecasted data (p = `r summary(ModelWithTrendAndSeasonalityOnly_Forecast_lm)$coefficients[1,4]`)
+
+### Predicting Total "As Is" data for 2014
+
+```{r include=FALSE}
+Model_hw_1 <- hw(TotalAsIs ,seasonal="additive",h=12)
+Model_hw_2 <- hw(TotalAsIs ,seasonal="multiplicative",h=12)
+```
+
+Because we're focused only on seasonality and trend as the two major components of the model Holt-Winters seasonal method represents the best approach to forecasting the 2014 data. When we compare the AIC of the additive and multiplicative variants of the method, we found that the additive method results in a lower AIC (`r AIC(Model_hw_1$model)`) compared to the multiplicative (`r AIC(Model_hw_2$model)`).
+
+This gives us a plot using the Holt-Winters Additive Forecast as follows:
+
+```{r echo=FALSE}
+plot(Model_hw_1, ylab="Exports Chulwalar  ", plot.conf=TRUE, fcol="white", xlab="Year")
+lines(fitted(Model_hw_1), col="red", lty=2)
+lines(Model_hw_1$mean, col="red")
+legend("topleft",lty=1, pch=1, col=c("black","red"), c("Total As Is","Forecast"))
+```
+
+From the forecase we produced a set of predicted number of exports by month for 2014:
+
+```{r echo=FALSE}
+Model_hw_1_df <-as.data.frame(Model_hw_1) 
+Model_hw_1_PointForecast <- ts(Model_hw_1_df$"Point Forecast", start=c(2014,1), end=c(2014,12), frequency=12)
+Model_hw_1_PointForecast
+```
